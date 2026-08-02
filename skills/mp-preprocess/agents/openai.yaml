@@ -1,0 +1,4 @@
+interface:
+  display_name: "MP Preprocess"
+  short_description: "Register, correct, and pad MP-SIM raw data"
+  default_prompt: "Use $mp-preprocess to turn an MP-SIM camera batch into padded Dr stacks."

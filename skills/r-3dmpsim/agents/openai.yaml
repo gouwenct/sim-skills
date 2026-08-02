@@ -1,0 +1,4 @@
+interface:
+  display_name: "R-3DMPSIM"
+  short_description: "Orchestrate the complete 3D MP-SIM workflow"
+  default_prompt: "Use $r-3dmpsim to run a confirmed 3D MP-SIM workflow with bundled capability skills."

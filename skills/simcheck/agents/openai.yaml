@@ -1,0 +1,4 @@
+interface:
+  display_name: "SIMcheck"
+  short_description: "按成像模式分析多种SIM相位堆栈并生成可信的质量指标结果"
+  default_prompt: "Use $simcheck to analyze a phase-resolved SIM TIFF with explicit acquisition dimensions and 3-, 5-, or 7-phase MCNR plus protocol-aware FPJ handling."

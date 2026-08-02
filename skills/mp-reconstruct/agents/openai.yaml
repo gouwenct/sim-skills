@@ -1,0 +1,4 @@
+interface:
+  display_name: "MP Reconstruct"
+  short_description: "Estimate parameters and reconstruct 3D MP-SIM data"
+  default_prompt: "Use $mp-reconstruct to estimate parameters or reconstruct padded 3D MP-SIM Dr stacks."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "MF Reconstruct"
+  short_description: "Slice MP stacks and run MF-SIM reconstruction"
+  default_prompt: "Use $mf-reconstruct to slice a 3D-MP Dr stack and run MF-SIM reconstruction."

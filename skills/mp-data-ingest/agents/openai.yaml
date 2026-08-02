@@ -1,0 +1,4 @@
+interface:
+  display_name: "MP Data Ingest"
+  short_description: "Download and normalize MP-SIM camera data"
+  default_prompt: "Use $mp-data-ingest to download and normalize an MP-SIM raw-data batch."

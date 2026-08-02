@@ -1,0 +1,4 @@
+interface:
+  display_name: "R-MFSIM"
+  short_description: "Orchestrate MP slicing and MF-SIM reconstruction"
+  default_prompt: "Use $r-mfsim to slice an MP Dr stack and run the confirmed MF-SIM workflow."

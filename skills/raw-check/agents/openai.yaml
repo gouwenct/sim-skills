@@ -1,0 +1,4 @@
+interface:
+  display_name: "Raw FPJ Check"
+  short_description: "Direct raw-data FPJ checks for regions 4 and 5"
+  default_prompt: "Use $raw-check to compute preliminary FPJ directly from cam1/cam2 raw data."
