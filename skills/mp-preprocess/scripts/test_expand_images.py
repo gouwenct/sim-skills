@@ -7,10 +7,18 @@ from pathlib import Path
 import numpy as np
 import tifffile
 
-from expand_images import expand_batch
+from expand_images import _center_pad_or_crop, expand_batch
 
 
 class ExpandImagesTest(unittest.TestCase):
+    def test_center_pad_and_crop_preserves_center(self) -> None:
+        image = np.arange(27).reshape(3, 3, 3)
+
+        adjusted = _center_pad_or_crop(image, (2, 4, 2))
+
+        self.assertEqual(adjusted.shape, (2, 4, 2))
+        np.testing.assert_array_equal(adjusted[:, 1:4, :], image[1:3, :, 1:3])
+
     def test_writes_padded_sibling_stack(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

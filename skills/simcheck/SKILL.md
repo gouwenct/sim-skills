@@ -39,7 +39,7 @@ Read [references/acquisition-contract.md](references/acquisition-contract.md) wh
 ## Preflight
 
 1. Resolve this skill directory as `SKILL_DIR`.
-2. Select a Python interpreter with `numpy`, `tifffile`, and `matplotlib`; use `D:\anaconda3\envs\3DMPSIM310\python.exe` for the MP-SIM workspace when available. FPJ PNG preview additionally needs Pillow. Torch CUDA is optional.
+2. Select an interpreter through the repository environment policy: explicit `SIM_SKILLS_PYTHON`, one compatible `3DMPSIM*`, then the confirmed shared UV environment. FPJ PNG preview additionally needs Pillow. Torch CUDA is optional and is never installed by the CPU fallback.
 3. Inspect the input TIFF metadata without writing data.
 4. Show a short checklist containing input scope, all acquisition dimensions, page order, requested outputs, device, and destination.
 5. Stop for missing or ambiguous acquisition dimensions. A matching page-count product does not prove the order.

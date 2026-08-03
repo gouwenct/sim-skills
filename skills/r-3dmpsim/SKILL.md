@@ -5,8 +5,8 @@ description: Orchestrate the complete 3D MP-SIM workflow from acquisition throug
 
 # R-3DMPSIM
 
-This is an orchestration skill. Do not implement algorithms here and do not
-reference project-local scripts. Use the sibling skills bundled in this plugin.
+This is an orchestration skill. Use sibling skills for reusable utilities and
+the research project's formal real/reconstruction entrypoints.
 
 ## Confirm First
 
@@ -24,9 +24,11 @@ Default to corrected A only, 462x462x120 padding, SIMcheck MCNR+FPJ at timepoint
 2. Follow `../mp-preprocess/SKILL.md` to generate Dr and padded Dr stacks.
 3. Follow `../simcheck/SKILL.md` to run MCNR and FPJ on padded A; B is optional.
 4. Follow `../mp-reconstruct/SKILL.md` to estimate parameters or reconstruct A.
+5. Offer `../decorr/SKILL.md` for optional effective-resolution measurement.
+6. Offer `../fwhm/SKILL.md` only for confirmed beads or thin line structures.
 
-Stop at the failing stage. Do not bypass a missing sibling skill with a local
-project path. Preserve the path identity:
+Stop at the failing stage. If project discovery from an explicit path or upward
+search fails, ask the user for the project path. Preserve the path identity:
 
 ```text
 raw batch X = preprocessing input = dataOut/X = SIMcheck batch = recon data root

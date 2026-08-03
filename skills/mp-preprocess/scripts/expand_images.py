@@ -3,11 +3,33 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import numpy as np
 import tifffile
 
-import Utils as _U
-
 TIFF_SUFFIXES = {".tif", ".tiff"}
+
+
+def _as_3d(image: np.ndarray) -> np.ndarray:
+    image = np.asarray(image)
+    while image.ndim < 3:
+        image = np.expand_dims(image, axis=0)
+    while image.ndim > 3:
+        image = image.reshape((image.shape[0] * image.shape[1], *image.shape[2:]))
+    return image
+
+
+def _center_pad_or_crop(image: np.ndarray, shape: tuple[int, int, int]) -> np.ndarray:
+    image = _as_3d(image)
+    slices = []
+    padding = []
+    for current, target in zip(image.shape, shape):
+        if target <= 0:
+            raise ValueError("target dimensions must be positive")
+        start = max(0, (current - target + 1) // 2)
+        slices.append(slice(start, start + min(current, target)))
+        difference = max(0, target - current)
+        padding.append(((difference + 1) // 2, difference // 2))
+    return np.pad(image[tuple(slices)], padding, mode="constant")
 
 
 def expand_batch(
@@ -31,9 +53,9 @@ def expand_batch(
             print(f"skip existing: {save_path}")
             continue
 
-        image = tifffile.imread(tif_path)
-        image = _U.pad_or_cut(image, x=target_x, y=target_y, z=target_z)
-        image = _U.image_reshape(image, dim=3)
+        image = _center_pad_or_crop(
+            tifffile.imread(tif_path), (target_z, target_x, target_y)
+        )
         save_dir.mkdir(parents=True, exist_ok=True)
         tifffile.imwrite(
             save_path,

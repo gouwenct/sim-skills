@@ -1,0 +1,7 @@
+numpy>=1.24,<3
+scipy>=1.10,<2
+pandas>=2,<3
+tifffile>=2023.7
+matplotlib>=3.7,<4
+openpyxl>=3.1,<4
+pytest>=7,<9

@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
-    [string]$TargetRoot = (Join-Path $env:USERPROFILE '.agents\skills')
+    [string]$TargetRoot = (Join-Path $env:USERPROFILE '.agents\skills'),
+    [switch]$MigrateExisting,
+    [string]$BackupRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,10 +16,14 @@ $skillNames = @(
     'simcheck',
     'mp-reconstruct',
     'mf-reconstruct',
-    'raw-check'
+    'raw-check',
+    'fwhm',
+    'decorr'
 )
 
 New-Item -ItemType Directory -Path $TargetRoot -Force | Out-Null
+$links = @()
+$conflicts = @()
 
 foreach ($skillName in $skillNames) {
     $source = (Get-Item -LiteralPath (Join-Path $skillsRoot $skillName)).FullName
@@ -33,10 +39,39 @@ foreach ($skillName in $skillNames) {
             Write-Host "Already linked: $skillName"
             continue
         }
-
-        throw "Refusing to replace existing path: $target"
+        $conflicts += [pscustomobject]@{ Name = $skillName; Path = $target }
+        continue
     }
+    $links += [pscustomobject]@{ Name = $skillName; Source = $source; Target = $target }
+}
 
-    New-Item -ItemType Junction -Path $target -Target $source | Out-Null
-    Write-Host "Linked: $skillName"
+if ($conflicts -and -not $MigrateExisting) {
+    $paths = ($conflicts.Path | ForEach-Object { "- $_" }) -join [Environment]::NewLine
+    throw "Refusing to replace existing paths. Confirm backup migration, then rerun with -MigrateExisting:$([Environment]::NewLine)$paths"
+}
+
+if ($conflicts) {
+    if (-not $BackupRoot) {
+        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $BackupRoot = Join-Path (Split-Path $TargetRoot -Parent) "skills-backup\$stamp"
+    }
+    New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
+    foreach ($conflict in $conflicts) {
+        $backup = Join-Path $BackupRoot $conflict.Name
+        if (Test-Path -LiteralPath $backup) {
+            throw "Backup target already exists: $backup"
+        }
+    }
+    foreach ($conflict in $conflicts) {
+        $backup = Join-Path $BackupRoot $conflict.Name
+        Move-Item -LiteralPath $conflict.Path -Destination $backup
+        Write-Host "Backed up: $($conflict.Name) -> $backup"
+        $source = (Get-Item -LiteralPath (Join-Path $skillsRoot $conflict.Name)).FullName
+        $links += [pscustomobject]@{ Name = $conflict.Name; Source = $source; Target = $conflict.Path }
+    }
+}
+
+foreach ($link in $links) {
+    New-Item -ItemType Junction -Path $link.Target -Target $link.Source | Out-Null
+    Write-Host "Linked: $($link.Name)"
 }

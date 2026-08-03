@@ -1,0 +1,4 @@
+interface:
+  display_name: "FWHM"
+  short_description: "自动测量荧光珠与线状结构横向和轴向半高宽并审核ROI"
+  default_prompt: "Use $fwhm to measure bead or line FWHM from TIFF data and generate auditable ROI results."

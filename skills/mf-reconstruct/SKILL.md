@@ -1,6 +1,6 @@
 ---
 name: mf-reconstruct
-description: Split one 120-frame 3D-MP Dr timepoint into eight 15-frame MF-SIM slices and run 2D MF reconstruction with bundled algorithms. Use for MF-SIM or 2D-MF processing after a 3D-MP Dr stack exists.
+description: Split one 120-frame 3D-MP Dr timepoint into eight 15-frame MF-SIM slices, then locate and run the research project's MF reconstruction entrypoint. Use for MF-SIM or 2D-MF processing after a 3D-MP Dr stack exists.
 ---
 
 # MF Reconstruct
@@ -19,19 +19,20 @@ confirmation.
 
 ## Reconstruct
 
-1. Copy `assets/run_mf_reconstruct_template.py` to a run-specific directory.
-2. Set `MF_SIM_DATA_ROOT` to the batch root and `MF_SIM_OTF_ROOT` to the 2D-MF
-   OTF directory.
-3. Put `<SKILL_DIR>/scripts` on `PYTHONPATH`.
+1. Use the project path supplied by the user. Otherwise search upward from the
+   current directory for `code/2D-MF-recon`.
+2. If neither method finds the project, ask the user for its path. Do not scan
+   whole drives or use a machine-specific default.
+3. Select a matching `Run_MF*.py` project entry. If none matches, copy the
+   nearest matching project entry to a new run-specific filename and edit only
+   its parameter section; never copy or modify algorithm modules.
 4. Confirm `FANWEI` using the actual unsorted `Path.iterdir()` order.
 5. Mirror dx, optical settings, notch, `mear`, W, `loadflag`, and `just_cfai`
-   from the selected 3D run where applicable.
+   from the selected 3D project entry where applicable.
+6. Run with the project-selected `3DMPSIM*` interpreter.
 
 ```powershell
-$env:MF_SIM_DATA_ROOT = '<dataOut-batch>'
-$env:MF_SIM_OTF_ROOT = '<OTF-2D-MF-directory>'
-$env:PYTHONPATH = '<SKILL_DIR>/scripts'
-& <python> -B <copied-run-entry.py>
+& <project-python> -B <project-root>/code/2D-MF-recon/<Run_MF-entry.py>
 ```
 
 MF mode requires `flag_N=5`, `Nshifts=5`, and `Nangles=3`. Do not substitute

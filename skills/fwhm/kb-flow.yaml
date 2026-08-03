@@ -1,0 +1,17 @@
+version: 1
+target_policy: discover-and-confirm
+
+stores:
+  fwhm:
+    root: .
+    solutions: docs/solutions
+    discovery_roots:
+      - docs
+      - references
+    promotion_targets:
+      overview: README.md
+      method: references/method.md
+    excluded_targets:
+      - docs/solutions
+      - docs/decisions
+      - output

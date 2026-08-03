@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decorrelation Resolution"
+  short_description: "Run reproducible Python decorrelation resolution analysis"
+  default_prompt: "Use $decorr to measure lateral and axial decorrelation resolution for this reconstructed TIFF."

@@ -5,8 +5,8 @@ description: Orchestrate MF-SIM processing from an existing 3D-MP Dr timepoint t
 
 # R-MFSIM
 
-This is an orchestration skill. Use `../mf-reconstruct/SKILL.md`; do not call
-project-local `code/tool` or `code/2D-MF-recon` scripts.
+This is an orchestration skill. Use `../mf-reconstruct/SKILL.md` for bundled Z
+slicing and the research project's formal `Run_MF*.py` entrypoint.
 
 Before writing, confirm the batch, samples, source Dr track, timepoints, output
 slice directory, overwrite policy, OTF path, FANWEI mapping, mirrored 3D optical
@@ -15,5 +15,6 @@ or both.
 
 The source timepoint must have 120 frames arranged as 8 Z layers x 3 directions
 x 5 phases. The leaf skill owns both the deterministic slicing script and MF
-reconstruction modules. Stop rather than reshaping invalid input or using the
-classic 3-phase 2D-SIM mode.
+entrypoint discovery. Stop rather than reshaping invalid input or using the
+classic 3-phase 2D-SIM mode. After reconstruction, offer `../decorr/SKILL.md`;
+offer `../fwhm/SKILL.md` only for confirmed beads or thin line structures.

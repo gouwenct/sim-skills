@@ -1,27 +1,28 @@
 ---
 name: mp-preprocess
-description: Convert MP-SIM cam1/cam2 acquisitions into registered and brightness-corrected Dr stacks, with optional registration-only output and 462x462x120 padding. Use for the real preprocessing and padding stages after raw layout is normalized.
+description: Locate and run a research project's MP-SIM real-preprocessing entrypoint, then pad generated Dr stacks with the bundled deterministic utility. Use for the real preprocessing and padding stages after raw layout is normalized.
 ---
 
 # MP Preprocess
 
-Use the bundled algorithm modules in `scripts/`; do not import a project-local
-`code/real` directory. Use the MP-SIM Python environment with NumPy, tifffile,
-OpenCV, SciPy, scikit-image, matplotlib, and Torch.
+Keep formal preprocessing entrypoints, algorithms, and physical parameters in
+the research project. This skill owns only project discovery and padding.
 
 ## Real Preprocessing
 
-1. Copy `assets/run_real_template.py` to a run-specific working directory.
-2. Set `MP_SIM_RAW_ROOT` to the normalized raw batch.
-3. Put `<SKILL_DIR>/scripts` on `PYTHONPATH`.
-4. Edit only the template's marked experiment parameters: `peizhun_file`,
-   `FANWEI`, `W_order`, and `save_reg_only`.
-5. Run the copied entry and retain it with the experiment record.
+1. Use the project path supplied by the user. Otherwise search upward from the
+   current directory for `code/real`.
+2. If neither method finds the project, ask the user for its path. Do not scan
+   whole drives and do not use a machine-specific default.
+3. Select a matching `Run_real_MP*.py` entry in the project. If none matches
+   the experiment, copy the nearest matching project entry to a new run-specific
+   filename and edit only its parameter section.
+4. Confirm `path_input`, `peizhun_file`, `FANWEI`, `W_order`, and
+   `save_reg_only`.
+5. Run the project entry with the project-selected `3DMPSIM*` interpreter.
 
 ```powershell
-$env:MP_SIM_RAW_ROOT = '<raw-batch>'
-$env:PYTHONPATH = '<SKILL_DIR>/scripts'
-& <python> -B <copied-run-entry.py>
+& <project-python> -B <project-root>/code/real/<Run_real_MP-entry.py>
 ```
 
 `save_reg_only=0` writes the corrected A track. `save_reg_only=1` additionally
@@ -29,7 +30,7 @@ writes the registration-only B track. Reconstruction consumes only A.
 
 ## Padding
 
-Run the bundled CLI against the generated batch root:
+Run the bundled CPU utility against the generated batch root:
 
 ```powershell
 & <python> -B <SKILL_DIR>/scripts/expand_images.py <dataOut-batch> `
