@@ -10,11 +10,17 @@
 python scripts\run_fwhm.py beads "<input>" `
   --pixel-size-xy-nm 30.1 --pixel-size-z-nm 96.9
 
+python scripts\run_fwhm.py beads "<input>" `
+  --pixel-size-xy-nm 30.1 --pixel-size-z-nm 96.9 `
+  --median-nearby-count 5
+
 python scripts\run_fwhm.py lines "<input>" `
   --pixel-size-xy-nm 30.1 --pixel-size-z-nm 96.9 `
   --theoretical-lateral-resolution-nm 100 `
   --theoretical-axial-resolution-nm 290
 ```
+
+`--median-nearby-count N` 仅适用于 `beads`。`N=0` 保留全部原有输出；设为正数时，以横向和轴向箱图中位数为共同 baseline，从同时具备两个方向合格值的同一 ROI 中保留前 `N` 个。CSV、箱图和预生成的 `review-assets/` 只写入保留 ROI。
 
 打开已有结果的人工审核：
 

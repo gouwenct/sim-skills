@@ -57,6 +57,8 @@ $$
 
 `mp-sim-beads-v1` 使用 XY 30.1 nm、Z 96.9 nm，并排除末两层。通用预设默认排除首尾各一层。
 
+微球模式可选 `--median-nearby-count N`。在质量合格且未被 Tukey 上侧外围栏排除的 ROI 中，分别计算横向和轴向箱图中位数作为 baseline；只有同时拥有两个方向有效值的同一 ROI 才参与联合排序。排序分数为两方向按各自 IQR 归一化后的最大偏离，保留分数最小的同一批 `N` 个 ROI。`N=0` 不启用该筛选；启用后，CSV、候选图、箱图和 `review-assets/` 均只包含这批 ROI。
+
 ## 3. 线条模式
 
 理论横向和轴向分辨率只用于定义观察与干扰尺度，不进入高斯宽度公式或 Tukey 围栏。
@@ -94,11 +96,11 @@ $$
 
 自动分析目录至少包含：
 
-- `fwhm_measurements.csv`：逐 ROI 坐标、FWHM、SNR、$R^2$、中心偏移、Tukey 标记和拒绝原因。
+- `fwhm_measurements.csv`：输出 ROI 坐标、FWHM、SNR、$R^2$、中心偏移、Tukey 标记和拒绝原因；启用微球中位数筛选时只写保留 ROI。
 - `fwhm_summary.json`：物理参数 `opt`、运行参数 `run_parameter`、状态、逐方向统计和检测元数据。
 - `SUMMARY.md`：简短统计与 `Index` 输出索引。
-- `fwhm_boxplot.png`：横向与轴向共用零起点坐标轴，叠加全部 ROI 散点及 n、中位数、IQR。
-- `candidates.png`：全部候选在原图上的位置、接受状态和 candidate ID。
+- `fwhm_boxplot.png`：横向与轴向共用零起点坐标轴，叠加输出 ROI 散点及 n、中位数、IQR。
+- `candidates.png`：输出候选在原图上的位置、接受状态和 candidate ID；启用微球中位数筛选时只显示保留 ROI。
 - `review-assets/`：自动分析时预生成的合格 ROI 审核证据。荧光珠仍使用统一目录；线条分别写入 `XY/` 与 `Z/`。
 
 线条模式另外生成：

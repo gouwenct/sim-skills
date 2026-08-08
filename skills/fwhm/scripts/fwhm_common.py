@@ -325,6 +325,7 @@ def write_summary_markdown(
             summary.get("accepted_roi_count_xy", "-"),
         ),
     )
+    saved_count = summary.get("saved_row_count")
     content = [
         "# FWHM 汇总",
         "",
@@ -332,6 +333,7 @@ def write_summary_markdown(
         f"- 状态：{status}",
         f"- 候选：{candidate_count}",
         f"- 合格：{accepted_count}",
+        *([f"- 输出：{saved_count}"] if saved_count is not None else []),
         "",
         "## 结果",
         "",

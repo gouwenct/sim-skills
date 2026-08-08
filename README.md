@@ -353,6 +353,13 @@ SIMcheck 必须明确提供采集维度和 TIFF 页序，不能仅凭页数推�
   --preset mp-sim-beads-v1
 ```
 
+如果只需要同一批接近横向与轴向箱图中位数的微球 ROI：
+
+```powershell
+& "$repo\skills\fwhm\fwhm.cmd" beads '<微球TIFF或文件夹>' `
+  --preset mp-sim-beads-v1 --median-nearby-count 5
+```
+
 处理已确认的细线结构：
 
 ```powershell
@@ -387,6 +394,7 @@ SIMcheck 必须明确提供采集维度和 TIFF 页序，不能仅凭页数推�
 | `--min-fit-snr` | `5` | 接受拟合的最低 SNR。 |
 | `--min-fit-r2` | `0.90` | 接受拟合的最低 R²。 |
 | `--edge-margin-fraction` | `0.10` | 图像边缘排除比例。 |
+| `--median-nearby-count` | `0` | 按横向/轴向箱图中位数联合排序，保留同一批 ROI 的数量；`0` 保留全部。 |
 
 `lines` 专用参数：
 

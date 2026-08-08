@@ -139,6 +139,13 @@ def build_parser() -> argparse.ArgumentParser:
     beads.add_argument("--min-fit-snr", type=float, default=5.0)
     beads.add_argument("--min-fit-r2", type=float, default=0.90)
     beads.add_argument("--edge-margin-fraction", type=float, default=0.10)
+    beads.add_argument(
+        "--median-nearby-count",
+        type=int,
+        default=0,
+        metavar="N",
+        help="save N shared accepted ROI nearest to the XY/Z medians; 0 saves all",
+    )
 
     line = subparsers.add_parser("lines", help="measure thin biological lines")
     _common_input_arguments(line)
@@ -187,6 +194,8 @@ def _validate_analysis_arguments(args: argparse.Namespace, mode: str) -> None:
             raise ValueError("detection and fitting SNR thresholds must be positive")
         if not 0 <= args.min_fit_r2 <= 1:
             raise ValueError("min_fit_r2 must be in [0, 1]")
+        if args.median_nearby_count < 0:
+            raise ValueError("median_nearby_count cannot be negative")
     else:
         if args.minimum_snr <= 0:
             raise ValueError("minimum_snr must be positive")
@@ -228,6 +237,7 @@ def run_beads(args: argparse.Namespace) -> tuple[dict[str, Any], Path]:
             "max_center_offset_px": 1.0,
             "edge_margin_fraction": args.edge_margin_fraction,
             "preset": args.preset,
+            "median_nearby_count": args.median_nearby_count,
         }
     )
     summary = fwhm_beads.run_analysis(opt, run_parameter)
