@@ -70,6 +70,7 @@ def default_run_parameter() -> dict[str, Any]:
         "max_candidates": 500,
         "diagnostic_count": 8,
         "tukey_minimum_count": 10,
+        "median_nearby_count": 0,
     }
 
 
@@ -759,6 +760,101 @@ def _summary_statistics(values: Sequence[float], seed: int = 0) -> dict[str, Any
     }
 
 
+def _median_baseline(values: Sequence[float]) -> tuple[float, dict[str, Any]]:
+    array = np.asarray(values, dtype=np.float64)
+    if array.size == 0:
+        raise ValueError("cannot estimate a median from empty values")
+    q1, median, q3 = np.percentile(array, [25.0, 50.0, 75.0])
+    return float(median), {
+        "q1_nm": float(q1),
+        "q3_nm": float(q3),
+        "iqr_nm": float(q3 - q1),
+    }
+
+
+def select_median_nearby_rows(
+    rows: Sequence[dict[str, Any]],
+    count: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if count < 0:
+        raise ValueError("median-nearby count cannot be negative")
+    if count == 0:
+        return list(rows), {
+            "enabled": False,
+            "count": 0,
+            "method": "disabled",
+        }
+
+    eligible_by_direction: dict[str, set[int]] = {}
+    baseline_by_direction: dict[str, tuple[float | None, dict[str, Any]]] = {}
+    direction_details: dict[str, Any] = {}
+    for direction, value_key in (("xy", "fwhm_xy_nm"), ("z", "fwhm_z_nm")):
+        tukey_key = f"tukey_excluded_{value_key}"
+        eligible = [
+            (index, row)
+            for index, row in enumerate(rows)
+            if row.get("accepted")
+            and row.get(value_key) is not None
+            and not row.get(tukey_key, False)
+            and np.isfinite(float(row[value_key]))
+        ]
+        baseline_nm = None
+        baseline_details: dict[str, Any] = {}
+        if eligible:
+            baseline_nm, baseline_details = _median_baseline(
+                [float(row[value_key]) for _, row in eligible]
+            )
+        eligible_by_direction[direction] = {index for index, _ in eligible}
+        baseline_by_direction[direction] = (baseline_nm, baseline_details)
+        direction_details[direction] = {
+            "eligible_count": len(eligible),
+            "selected_count": 0,
+            "baseline_nm": baseline_nm,
+            **baseline_details,
+        }
+
+    jointly_eligible = eligible_by_direction["xy"] & eligible_by_direction["z"]
+    selected_indices: set[int] = set()
+    if jointly_eligible:
+        xy_baseline, xy_details = baseline_by_direction["xy"]
+        z_baseline, z_details = baseline_by_direction["z"]
+        assert xy_baseline is not None and z_baseline is not None
+        xy_scale = max(float(xy_details["iqr_nm"]), np.finfo(float).eps)
+        z_scale = max(float(z_details["iqr_nm"]), np.finfo(float).eps)
+        ranked = sorted(
+            jointly_eligible,
+            key=lambda index: (
+                max(
+                    abs(float(rows[index]["fwhm_xy_nm"]) - xy_baseline) / xy_scale,
+                    abs(float(rows[index]["fwhm_z_nm"]) - z_baseline) / z_scale,
+                ),
+                abs(float(rows[index]["fwhm_xy_nm"]) - xy_baseline) / xy_scale
+                + abs(float(rows[index]["fwhm_z_nm"]) - z_baseline) / z_scale,
+                index,
+            ),
+        )
+        selected_indices = set(ranked[:count])
+
+    for direction in ("xy", "z"):
+        direction_details[direction]["selected_count"] = len(selected_indices)
+    for index, row in enumerate(rows):
+        selected = index in selected_indices
+        row["median_selected_xy"] = selected
+        row["median_selected_z"] = selected
+
+    return [
+        row for index, row in enumerate(rows) if index in selected_indices
+    ], {
+        "enabled": True,
+        "count": count,
+        "required_directions": ["xy", "z"],
+        "jointly_eligible_count": len(jointly_eligible),
+        "selected_count": len(selected_indices),
+        "method": "joint normalized worst-distance to XY/Z median baselines; shared ROI retained",
+        **direction_details,
+    }
+
+
 def build_summary(
     rows: Sequence[dict[str, Any]],
     opt: argparse.Namespace,
@@ -775,7 +871,12 @@ def build_summary(
         "fwhm_z_nm",
         minimum_count=run_parameter["tukey_minimum_count"],
     )
+    output_rows, median_selection = select_median_nearby_rows(
+        rows,
+        int(run_parameter.get("median_nearby_count", 0)),
+    )
     accepted = [row for row in rows if row["accepted"]]
+    output_accepted = [row for row in output_rows if row["accepted"]]
     dimensions = {}
     for key in ("fwhm_x_nm", "fwhm_y_nm", "fwhm_xy_nm", "fwhm_z_nm"):
         tukey_key = (
@@ -785,7 +886,7 @@ def build_summary(
         )
         values = [
             float(row[key])
-            for row in accepted
+            for row in output_accepted
             if row.get(key) is not None and not row.get(tukey_key, False)
         ]
         dimensions[key] = _summary_statistics(values)
@@ -794,9 +895,14 @@ def build_summary(
     for source in sorted({str(row["source"]) for row in rows}):
         source_rows = [row for row in rows if row["source"] == source]
         source_accepted = [row for row in source_rows if row["accepted"]]
+        source_output_rows = [row for row in output_rows if row["source"] == source]
+        source_output_accepted = [
+            row for row in source_output_rows if row["accepted"]
+        ]
         per_file[source] = {
             "candidate_count": len(source_rows),
             "accepted_count": len(source_accepted),
+            "saved_count": len(source_output_rows),
             "rejected_count": len(source_rows) - len(source_accepted),
             "rejection_reason_counts": dict(
                 sorted(
@@ -811,15 +917,17 @@ def build_summary(
             "fwhm_xy_nm": _summary_statistics(
                 [
                     float(row["fwhm_xy_nm"])
-                    for row in source_accepted
+                    for row in source_output_accepted
                     if row.get("fwhm_xy_nm") is not None
+                    and not row.get("tukey_excluded_fwhm_xy_nm", False)
                 ]
             ),
             "fwhm_z_nm": _summary_statistics(
                 [
                     float(row["fwhm_z_nm"])
-                    for row in source_accepted
+                    for row in source_output_accepted
                     if row.get("fwhm_z_nm") is not None
+                    and not row.get("tukey_excluded_fwhm_z_nm", False)
                 ]
             ),
         }
@@ -845,6 +953,7 @@ def build_summary(
         },
         "candidate_count": len(rows),
         "accepted_count": len(accepted),
+        "saved_row_count": len(output_rows),
         "final_xy_roi_count": final_xy_count,
         "final_z_roi_count": dimensions["fwhm_z_nm"]["count"],
         "rejected_count": len(rows) - len(accepted),
@@ -860,6 +969,7 @@ def build_summary(
         ),
         "formal_result": not candidate_limit_reached,
         "tukey": {"xy": tukey_xy, "z": tukey_z},
+        "median_selection": median_selection,
         "rejection_reason_counts": dict(
             sorted(
                 Counter(
@@ -1358,7 +1468,6 @@ def run_analysis(
             file_output = output_path / "per-file" / _clean_stem(tiff_path)
             file_output.mkdir(parents=True, exist_ok=False)
             per_file_outputs[source_name] = file_output
-        _plot_overlay(image, rows, file_output / "candidates.png")
 
     summary = build_summary(
         all_rows,
@@ -1366,8 +1475,33 @@ def run_analysis(
         run_parameter,
         all_detection_metadata,
     )
+    output_rows = (
+        [
+            row
+            for row in all_rows
+            if row.get("median_selected_xy") and row.get("median_selected_z")
+        ]
+        if summary["median_selection"]["enabled"]
+        else all_rows
+    )
+    for tiff_path in files:
+        source_name = str(tiff_path.resolve())
+        image, _ = read_tiff_image(
+            tiff_path,
+            run_parameter["axes"],
+            run_parameter["channel"],
+            run_parameter["timepoint"],
+        )
+        file_output = output_path
+        if is_batch:
+            file_output = per_file_outputs[source_name]
+        _plot_overlay(
+            image,
+            [row for row in output_rows if row["source"] == source_name],
+            file_output / "candidates.png",
+        )
     summary["mode"] = "beads"
-    _write_csv(all_rows, output_path / "fwhm_measurements.csv")
+    _write_csv(output_rows, output_path / "fwhm_measurements.csv")
     (output_path / "fwhm_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, allow_nan=False),
         encoding="utf-8",
@@ -1377,10 +1511,10 @@ def run_analysis(
         json.dumps(summary, ensure_ascii=False, indent=2, allow_nan=False),
         encoding="utf-8",
     )
-    _plot_boxplot(all_rows, output_path / "fwhm_boxplot.png")
+    _plot_boxplot(output_rows, output_path / "fwhm_boxplot.png")
     if is_batch:
         for source, source_summary in summary["files"].items():
-            source_rows = [row for row in all_rows if str(row["source"]) == source]
+            source_rows = [row for row in output_rows if str(row["source"]) == source]
             file_output = per_file_outputs[source]
             _write_csv(source_rows, file_output / "fwhm_measurements.csv")
             (file_output / "fwhm_summary.json").write_text(
@@ -1399,9 +1533,9 @@ def run_analysis(
             )
     index_entries = [
         ("SUMMARY.md", "汇总与文件索引。"),
-        ("fwhm_measurements.csv", "全部 ROI 数值与判定。"),
+        ("fwhm_measurements.csv", "输出 ROI 数值与判定；可只含中位数附近的保留 ROI。"),
         ("fwhm_summary.json", "完整参数与统计。"),
-        ("fwhm_boxplot.png", "横向、轴向箱线图。"),
+        ("fwhm_boxplot.png", "输出 ROI 的横向、轴向箱线图。"),
         ("review-assets/", "审核页面预生成的自动合格 ROI 图。"),
         ("reviewed/", "人工审核后生成。"),
     ]
@@ -1412,7 +1546,7 @@ def run_analysis(
     else:
         index_entries.extend(
             [
-                ("candidates.png", "带 candidate ID 的全部候选。"),
+                ("candidates.png", "输出候选的带 candidate ID 图。"),
             ]
         )
     write_summary_markdown(summary, output_path / "SUMMARY.md", index_entries)
@@ -1471,6 +1605,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-fwhm-z-nm", type=float, default=3000.0)
     parser.add_argument("--max-candidates", type=int, default=500)
     parser.add_argument("--diagnostic-count", type=int, default=8)
+    parser.add_argument(
+        "--median-nearby-count",
+        type=int,
+        default=0,
+        metavar="N",
+        help="save N shared accepted ROI nearest to the XY/Z medians; 0 saves all",
+    )
     return parser
 
 
@@ -1496,6 +1637,7 @@ def parameters_from_args(
         or args.max_isolation_z_px < 0
         or args.max_candidates < 1
         or args.diagnostic_count < 0
+        or args.median_nearby_count < 0
     ):
         raise ValueError("distance, profile, candidate, or diagnostic limits are invalid")
     _positive(args.max_center_offset_px, "maximum center offset")
@@ -1545,6 +1687,7 @@ def parameters_from_args(
             "max_fwhm_z_nm": args.max_fwhm_z_nm,
             "max_candidates": args.max_candidates,
             "diagnostic_count": args.diagnostic_count,
+            "median_nearby_count": args.median_nearby_count,
         }
     )
     return opt, run_parameter

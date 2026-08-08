@@ -1,0 +1,4 @@
+interface:
+  display_name: "Raw FPJ"
+  short_description: "Compute raw MP-SIM FPJ for regions 4 and 5"
+  default_prompt: "Use $raw-fpj to compute preliminary FPJ directly from cam1/cam2 raw data."

@@ -43,6 +43,16 @@ python "<skill-root>\scripts\run_fwhm.py" lines "<input>" `
   --theoretical-axial-resolution-nm 290
 ```
 
+对于 beads，如果只需要保留同一批接近箱图中位数的 ROI，可增加：
+
+```powershell
+python "<skill-root>\scripts\run_fwhm.py" beads "<input>" `
+  --pixel-size-xy-nm 30.1 --pixel-size-z-nm 96.9 `
+  --median-nearby-count 5
+```
+
+`--median-nearby-count N` 默认是 `0`，保留旧行为；设为正数时，在 Tukey 排除之后分别计算横向和轴向箱图中位数，只从同时具备两个方向合格值的同一 ROI 中联合排序，并保留前 `N` 个。输出 CSV、候选图、箱图和 `review-assets/` 只包含这批 ROI；没有轴向合格值的 2D ROI 不会被选入。
+
 Pass `--recursive` only when the user wants subfolders included. For `CZYX`, `TZYX`, or `TCZYX`, require `--channel` and/or `--timepoint`; never silently select a non-singleton channel or time point. Missing or generic three-dimensional axes default to the confirmed `ZYX` convention.
 
 Do not choose an existing output directory. The default is:
