@@ -13,7 +13,8 @@
 - `simcheck`：计算保留相位信息的 SIM 质量指标。
 - `mp-reconstruct`：定位并运行科研项目的 3D 重建入口。
 - `mf-reconstruct`：切分 MP 堆栈，并运行科研项目的 MF 入口。
-- `raw-check`：从相机原始数据计算初步 FPJ。
+- `raw-fpj`：从相机原始数据计算初步 FPJ。
+- `raw-check`：检查相机原始数据的掉帧、帧数不一致和相邻重复帧。
 - `fwhm`：测量微球或细线结构的半高宽，并保留可审计的 ROI 证据。
 - `decorr`：测量横向和轴向去相关分辨率。
 
@@ -249,12 +250,12 @@ SIMcheck 必须明确提供采集维度和 TIFF 页序，不能仅凭页数推�
 
 省略 `--recursive` 时，只处理输入文件夹直属的 TIFF。大批量运行前先使用 `--dry-run`；只有用户确认覆盖时才使用 `--overwrite`。
 
-### `raw-check`：从 cam1/cam2 计算初步 FPJ
+### `raw-fpj`：从 cam1/cam2 计算初步 FPJ
 
 传入一个直接包含可识别 cam1 和 cam2 TIFF 的目录：
 
 ```powershell
-& $python -B "$repo\skills\raw-check\scripts\fpj_raw_cam12.py" `
+& $python -B "$repo\skills\raw-fpj\scripts\fpj_raw_cam12.py" `
   --input-dir '<raw-data-A>' `
   --n-z 8 --n-directions 3 --n-phases 5
 ```
@@ -287,6 +288,29 @@ SIMcheck 必须明确提供采集维度和 TIFF 页序，不能仅凭页数推�
 ```
 
 使用 `--sample-evenly` 可让采样时间点均匀分布；只有确实要替换既有结果时才使用 `--overwrite`。
+
+### `raw-check`：检查掉帧与相邻重复帧
+
+该检查只读扫描样本目录中全部 cam1/cam2 TIFF 页，不修改原始数据。默认采集结构为每台相机 3 方向 × 5 相位，即每时间点 15 帧；两台相机合计 30 帧：
+
+```powershell
+& $python -B "$repo\skills\raw-check\scripts\check_raw_frames.py" `
+  --input-dir '<包含cam1和cam2 TIFF的样本目录>'
+```
+
+参数说明：
+
+| 参数 | 默认值 | 说明 |
+| --- | --- | --- |
+| `--input-dir` | 必填 | 样本目录；读取目录直属的 `cam1*`、`cam2*` TIFF，以及可选 `cam1/`、`cam2/` 子目录中的 TIFF。 |
+| `--n-z` | `1` | 每时间点 Z 层数。 |
+| `--n-directions` | `3` | 采集方向数。 |
+| `--n-phases` | `5` | 每方向相位数。 |
+| `--gap-factor` | `1.75` | 相邻时间戳间隔超过中位数的倍数时提示疑似掉帧；用于适配真实相机时钟抖动。 |
+
+脚本会自然排序并合并所有相机分片，逐页计算 `mean`、`max`、`min`、`std`。相邻两帧四项统计完全一致时，输出相机、帧号、1 基时间点、Z、方向、相位和文件内页号。它还会报告两台相机总页数、页数不一致、不能整除完整时间点的余数，以及 TIFF 元数据中的帧索引或时间戳间隙。
+
+退出码 `0` 表示未发现异常，`1` 表示发现或推断出异常，`2` 表示输入错误。文件大小差只作为信息展示：实测 cam1 与 cam2 即使页数相同，也会因 TIFF/OME 元数据开销产生明显字节差。时间戳间隙只能提示疑似掉帧；如果两台相机同时缺失一个完整时间点且元数据也没有间隙，仅凭总页数无法发现。
 
 ### `mp-reconstruct`：运行科研项目 3D 重建入口
 
@@ -491,4 +515,4 @@ GitHub 仓库是私有仓库，因此需要先登录 GitHub CLI。安装器对�
 
 备份写入 `.agents/skills-backup/<时间戳>/`，安装器不会删除备份。可用 `-BackupRoot` 指定其他备份位置。
 
-AI 安装器应执行同样的顺序：克隆或仅快进拉取、运行 `install.ps1`、报告冲突但不改动冲突项，最后验证 10 个联接都解析到当前检出目录。未经用户明确确认，不得使用 `-MigrateExisting` 或 `-CreateUv`。
+AI 安装器应执行同样的顺序：克隆或仅快进拉取、运行 `install.ps1`、报告冲突但不改动冲突项，最后验证 11 个联接都解析到当前检出目录。未经用户明确确认，不得使用 `-MigrateExisting` 或 `-CreateUv`。

@@ -17,6 +17,7 @@ $skillNames = @(
     'mp-reconstruct',
     'mf-reconstruct',
     'raw-check',
+    'raw-fpj',
     'fwhm',
     'decorr'
 )
