@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hyperstack"
+  short_description: "Stack a folder of 3D TIFFs into a sibling ImageJ TZYX hyperstack"
+  default_prompt: "Use $hyperstacks to convert the specified TIFF folder into a sibling ImageJ hyperstack."
