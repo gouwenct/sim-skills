@@ -17,6 +17,7 @@
 - `raw-check`：检查相机原始数据的掉帧、帧数不一致和相邻重复帧。
 - `fwhm`：测量微球或细线结构的半高宽，并保留可审计的 ROI 证据。
 - `decorr`：测量横向和轴向去相关分辨率。
+- `hyperstacks`：把同一类 3D TIFF 文件夹堆成 ImageJ `TZYX` hyperstack。
 
 可复用的预处理、检查和测量脚本保存在各自所属的 Skill 内。正式的 `Run_real_MP*.py`、`0-run5*.py`、`Run_MF*.py` 入口及其算法依赖、物理参数、标定 OTF、运行数据、凭据和 GPU 驱动仍保留在科研项目中。
 
@@ -63,6 +64,14 @@ $env:SIM_SKILLS_PYTHON = $python
 样本为 <samples>，依次执行 ingest、real、padding 和 SIMcheck，之后只估计参数。
 在我确认前不要运行完整重建。
 ```
+
+当前 `r-3dmpsim` 仅授权用于以下项目：
+
+```text
+E:\BaiduSyncdisk\黄老师\20260527 MP-SIM验收
+```
+
+在下载、写入、预处理、SIMcheck 或重建前，必须核对项目根目录；路径不一致时停止，并等待用户明确确认例外。写入前还必须展示解析后的路径和参数，确认数据来源、批次、样本、各阶段输入输出和写入许可。
 
 各阶段使用的 Skill、输入和输出如下：
 
@@ -332,7 +341,7 @@ SIMcheck 必须明确提供采集维度和 TIFF 页序，不能仅凭页数推�
 | `loadflag` | 项目定义的参数加载模式，必须按所选入口核对。 |
 | `just_cfai` | `1` 只估计参数并保留 cfai 产物；`0` 才运行完整重建。 |
 | 参数设备 | 参数估计使用的 CPU/GPU 设备，必须与项目环境兼容。 |
-| 输出级别 | 控制日志、中间结果和完整重建体的保存范围。 |
+| 输出级别 | 默认使用 `cfai_png`，即使 `just_cfai=0` 也保留 cfai PNG；仅用户明确要求不输出 cfai PNG 时使用 `essential`，深度诊断使用 `debug`。 |
 
 运行前必须打印入口实际排序后的样本映射，并确认 `FANWEI`、绝对输入输出路径、OTF、`Dr_sub`、`loadflag`、`just_cfai`、设备和输出级别。输出位置由项目入口定义；典型产物包括参数文件、日志、`P/lihe_*.tif` 和可选的完整重建体。默认使用 `just_cfai=1`。
 
@@ -491,6 +500,27 @@ SIMcheck 必须明确提供采集维度和 TIFF 页序，不能仅凭页数推�
 
 批处理结果包含 `samples/`、`formal_progress.csv` 和 `decorr_results.xlsx`；渲染后增加 `INDEX.md`、质控页面和论文图片。正式批处理器会拒绝不符合其精确 27 文件约定的输入集。
 
+### `hyperstacks`：同类 3D TIFF 文件夹转 ImageJ hyperstack
+
+这是工具型 Skill。把指定文件夹里同一类 3D TIFF 堆成一张 ImageJ `TZYX` hyperstack，写在被堆文件夹的同级外面，不放进单张 TIFF 所在文件夹。
+
+```powershell
+& $python -B "$repo\skills\hyperstacks\scripts\run_hyperstack.py" '<tif文件夹>'
+```
+
+默认行为：
+
+- 当前层几乎都是同类 3D TIFF：堆这一层。
+- 当前层几乎都是 TIFF 子文件夹：给每个这样的子文件夹各写一张。
+- 两层都有合格 3D TIFF：停下等待确认，不写文件。
+- 只收形状一致的 3D 体积；跳过文件名含 `hyperstack` 的文件、2D、4D 和已有 ImageJ `TZYX`/`TZCYX`。
+- T 按文件名自然序；无轴标签的 3D 按 `ZYX`。
+- 输出 `float32`，ImageJ 轴为 `TZYX`。不要调用会做 uint16 拉伸的 `_U.save_hyperstack`。
+- 默认文件名为 `<文件夹名>_hyperstack.tif`，位于该文件夹旁边。已存在则加时间戳另存，不覆盖。
+- 默认深度为指定文件夹加子文件夹加孙子文件夹（`--max-depth 2`）。再深的 TIFF 文件夹会打印 `NEED_CONFIRM` 并等待用户确认。
+
+可选参数：`--output-dir` 把所有 hyperstack 改写到指定目录；`--dry-run` 只打印将要执行的动作。
+
 ## 安装或更新
 
 推荐检出目录为 `$env:USERPROFILE\.agents\sim-skills`，但仓库可以克隆到任意位置，不要写死完整用户目录。安装器从自身所在位置解析 Skill 来源，并在当前用户的 `.agents\skills` 下为每个 Skill 创建一个目录联接，使所有受支持 Agent 使用同一份 Git 管理文件。如果某个 Agent 使用其他共享 Skill 目录，可通过 `-TargetRoot` 指定。
@@ -515,4 +545,4 @@ GitHub 仓库是私有仓库，因此需要先登录 GitHub CLI。安装器对�
 
 备份写入 `.agents/skills-backup/<时间戳>/`，安装器不会删除备份。可用 `-BackupRoot` 指定其他备份位置。
 
-AI 安装器应执行同样的顺序：克隆或仅快进拉取、运行 `install.ps1`、报告冲突但不改动冲突项，最后验证 11 个联接都解析到当前检出目录。未经用户明确确认，不得使用 `-MigrateExisting` 或 `-CreateUv`。
+AI 安装器应执行同样的顺序：克隆或仅快进拉取、运行 `install.ps1`、报告冲突但不改动冲突项，最后验证 12 个联接都解析到当前检出目录。未经用户明确确认，不得使用 `-MigrateExisting` 或 `-CreateUv`。

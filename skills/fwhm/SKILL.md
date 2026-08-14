@@ -67,7 +67,7 @@ Do not choose an existing output directory. The default is:
 - Report the number of accepted ROIs, median lateral/axial FWHM, IQR, and bootstrap 95% CI when present.
 - Treat `status="too_many_candidates"` as `候选太多`; diagnostics are usable, but the result is not formal.
 - Treat 10–29 accepted ROIs as a warning and fewer than 10 as `样本量不足`.
-- Apply the standard Tukey upper outer fence only when at least 10 quality-accepted ROIs exist: `Q3 + 3×IQR`. Keep excluded ROI data and images.
+- Apply the standard Tukey upper outer fence only when at least 10 quality-accepted ROIs exist: `Q3 + 3×IQR`. In the default mode, keep excluded ROI data and images; with `--median-nearby-count`, outputs contain only the shared retained ROI set.
 - Do not claim line FWHM is system resolution unless the biological line diameter is negligible. It is otherwise observed structure width convolved with the PSF.
 
 Read [references/method.md](references/method.md) when explaining formulas, screening rules, output fields, or scientific limitations.

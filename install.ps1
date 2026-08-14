@@ -19,7 +19,8 @@ $skillNames = @(
     'raw-check',
     'raw-fpj',
     'fwhm',
-    'decorr'
+    'decorr',
+    'hyperstacks'
 )
 
 New-Item -ItemType Directory -Path $TargetRoot -Force | Out-Null

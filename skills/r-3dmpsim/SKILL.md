@@ -8,12 +8,32 @@ description: Orchestrate the complete 3D MP-SIM workflow from acquisition throug
 This is an orchestration skill. Use sibling skills for reusable utilities and
 the research project's formal real/reconstruction entrypoints.
 
+## Project Scope
+
+This skill is currently authorized only for:
+
+```text
+E:\BaiduSyncdisk\黄老师\20260527 MP-SIM验收
+```
+
+Before any download, write, preprocessing, SIMcheck, or reconstruction, verify
+the project root. If it differs, warn and stop:
+
+> Warning: `r-3dmpsim` is currently authorized only for `E:\BaiduSyncdisk\黄老师\20260527 MP-SIM验收`; the current project is outside that scope. Confirm explicitly before continuing.
+
+Do not continue until the user explicitly confirms the exception. Record the
+exception in the confirmation checklist.
+
 ## Confirm First
 
 Show and confirm: data source and destination, batch, samples, `peizhun_file`,
 FANWEI mapping, `W_order`, `save_reg_only`, padding size, SIMcheck checks and
 timepoint, reconstruction FANWEI, Dr track, OTF path, `just_cfai`, load mode,
 device, output level, and permission to write.
+
+For reconstruction, default `parameter_output_level` to `cfai_png`, including
+when `just_cfai=0`. Use `essential` only when the user explicitly requests no
+cfai PNG output; use `debug` for deeper diagnostics.
 
 Default to corrected A only, 462x462x120 padding, SIMcheck MCNR+FPJ at timepoint
 3, GPU auto selection, `just_cfai=1`, and no full reconstruction.
